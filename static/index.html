@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freight Rate & ETA API</title>
+<style>
+  :root { --bg:#0d0d0d; --card:#1a1a19; --border:rgba(255,255,255,0.1); --text:#fff; --dim:#c3c2b7; --accent:#3987e5; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+  h1 { font-size: 1.7rem; margin-bottom: 4px; }
+  p.lead { color: var(--dim); margin-top: 0; }
+  .card { background: var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:18px; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }
+  pre { background:#0c101a; border:1px solid var(--border); border-radius:8px; padding:14px; overflow-x:auto; }
+  .badge { display:inline-block; background: rgba(57,135,229,0.15); color: var(--accent); padding:2px 10px; border-radius:999px; font-size:0.75rem; font-weight:600; margin-right:6px; }
+  table { width:100%; border-collapse: collapse; font-size:0.85rem; }
+  td, th { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); }
+  #result { white-space: pre-wrap; }
+  button { background: var(--accent); color:#fff; border:none; border-radius:6px; padding:10px 18px; font-weight:600; cursor:pointer; }
+  input, select { background:#0c101a; border:1px solid var(--border); color:var(--text); border-radius:6px; padding:8px; margin:4px 6px 4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Freight Rate &amp; ETA API</h1>
+  <p class="lead">A small REST API that estimates freight cost and delivery time between US cities.</p>
+
+  <div class="card">
+    <span class="badge">GET</span> <code>/health</code> &mdash; liveness check
+  </div>
+
+  <div class="card">
+    <span class="badge">GET</span> <code>/api/meta</code> &mdash; list of supported cities &amp; modes
+  </div>
+
+  <div class="card">
+    <span class="badge">POST</span> <code>/api/quote</code> &mdash; get a rate + ETA estimate
+    <pre>curl -X POST /api/quote -H "Content-Type: application/json" -d '{
+  "origin": "Orlando, FL",
+  "destination": "Atlanta, GA",
+  "mode": "Truck",
+  "weight_lbs": 1200
+}'</pre>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Try it</h3>
+    <div>
+      <select id="origin"></select>
+      <select id="destination"></select>
+      <select id="mode"></select>
+      <input id="weight" type="number" placeholder="weight (lbs)" value="1200">
+      <button onclick="runQuote()">Get Quote</button>
+    </div>
+    <pre id="result">Results will appear here.</pre>
+  </div>
+</div>
+
+<script>
+async function loadMeta() {
+  const r = await fetch('/api/meta');
+  const meta = await r.json();
+  const fill = (id, items) => {
+    const el = document.getElementById(id);
+    el.innerHTML = items.map(c => `<option>${c}</option>`).join('');
+  };
+  fill('origin', meta.cities);
+  fill('destination', meta.cities);
+  fill('mode', meta.modes);
+  document.getElementById('destination').selectedIndex = 1;
+}
+async function runQuote() {
+  const body = {
+    origin: document.getElementById('origin').value,
+    destination: document.getElementById('destination').value,
+    mode: document.getElementById('mode').value,
+    weight_lbs: Number(document.getElementById('weight').value),
+  };
+  const r = await fetch('/api/quote', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  document.getElementById('result').textContent = JSON.stringify(await r.json(), null, 2);
+}
+loadMeta();
+</script>
+</body>
+</html>
